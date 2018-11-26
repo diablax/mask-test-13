@@ -109,5 +109,5 @@ target_link_libraries(daemon
     ${EXTRA_LIBRARIES})
 set_property(TARGET daemon
   PROPERTY
-    OUTPUT_NAME "caliberd")
+    OUTPUT_NAME "maskd")
 install(TARGETS daemon DESTINATION bin)

@@ -1797,7 +1797,7 @@ bool simple_wallet::save_known_rings(const std::vector<std::string> &args)
 
 bool simple_wallet::version(const std::vector<std::string> &args)
 {
-  message_writer() << "Caliber '" << MONERO_RELEASE_NAME << "' (v" << MONERO_VERSION_FULL << ")";
+  message_writer() << "Mask '" << MONERO_RELEASE_NAME << "' (v" << MONERO_VERSION_FULL << ")";
   return true;
 }
 
@@ -3653,7 +3653,7 @@ boost::optional<epee::wipeable_string> simple_wallet::new_wallet(const boost::pr
     "To start synchronizing with the daemon, use the \"refresh\" command.\n"
     "Use the \"help\" command to see the list of available commands.\n"
     "Use \"help <command>\" to see a command's documentation.\n"
-    "Always use the \"exit\" command when closing caliber-wallet-cli to save \n"
+    "Always use the \"exit\" command when closing mask-wallet-cli to save \n"
     "your current session's state. Otherwise, you might need to synchronize \n"
     "your wallet again (your wallet keys are NOT at risk in any case).\n")
   ;
@@ -8129,12 +8129,12 @@ int main(int argc, char* argv[])
   bool should_terminate = false;
   std::tie(vm, should_terminate) = wallet_args::main(
    argc, argv,
-   "caliber-wallet-cli [--wallet-file=<file>|--generate-new-wallet=<file>] [<COMMAND>]",
+   "mask-wallet-cli [--wallet-file=<file>|--generate-new-wallet=<file>] [<COMMAND>]",
     sw::tr("This is the command line monero wallet. It needs to connect to a monero\ndaemon to work correctly.\nWARNING: Do not reuse your Monero keys on another fork, UNLESS this fork has key reuse mitigations built in. Doing so will harm your privacy."),
     desc_params,
     positional_options,
     [](const std::string &s, bool emphasis){ tools::scoped_message_writer(emphasis ? epee::console_color_white : epee::console_color_default, true) << s; },
-    "caliber-wallet-cli.log"
+    "mask-wallet-cli.log"
   );
 
   if (!vm)

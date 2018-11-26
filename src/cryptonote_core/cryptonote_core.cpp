@@ -428,7 +428,7 @@ namespace cryptonote
       {
         MWARNING("Found old-style blockchain.bin in " << old_files.string());
         MWARNING("Monero now uses a new format. You can either remove blockchain.bin to start syncing");
-        MWARNING("the blockchain anew, or use caliber-blockchain-export and caliber-blockchain-import to");
+        MWARNING("the blockchain anew, or use mask-blockchain-export and mask-blockchain-import to");
         MWARNING("convert your existing blockchain.bin to the new format. See README.md for instructions.");
         return false;
       }
@@ -690,7 +690,7 @@ namespace cryptonote
     bad_semantics_txes_lock.unlock();
 
     uint8_t version = m_blockchain_storage.get_current_hard_fork_version();
-    const size_t max_tx_version = 2;
+    const size_t max_tx_version = 1;
     if (tx.version == 0 || tx.version > max_tx_version)
     {
       // v2 is the latest one we know
@@ -1536,7 +1536,7 @@ namespace cryptonote
   //-----------------------------------------------------------------------------------------------
   bool core::check_updates()
   {
-    static const char software[] = "caliber";
+    static const char software[] = "mask";
 #ifdef BUILD_TAG
     static const char buildtag[] = BOOST_PP_STRINGIZE(BUILD_TAG);
     static const char subdir[] = "cli"; // because it can never be simple

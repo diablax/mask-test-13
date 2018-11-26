@@ -2339,4 +2339,5 @@ bool BlockchainBDB::is_read_only() const
   return false;
 }
 
+
 }  // namespace cryptonote

@@ -54,7 +54,7 @@ using epee::string_tools::pod_to_hex;
 using namespace crypto;
 
 // Increase when the DB structure changes
-#define VERSION 3
+#define VERSION 1
 
 namespace
 {
@@ -1361,12 +1361,15 @@ void BlockchainLMDB::open(const std::string& filename, const int db_flags)
     // if not found, and the DB is non-empty, this is probably
     // an "old" version 0, which we don't handle. If the DB is
     // empty it's fine.
+
     if (VERSION > 0 && m_height > 0)
       compatible = false;
   }
 
+      std::cout << "VERSION x = " << VERSION << std::endl;
   if (!compatible)
   {
+      std::cout << "VERSION xx = " << VERSION << std::endl;
     txn.abort();
     mdb_env_close(m_env);
     m_open = false;
@@ -1394,6 +1397,7 @@ void BlockchainLMDB::open(const std::string& filename, const int db_flags)
     }
   }
 
+      std::cout << "VERSION wow = " << VERSION << std::endl;
   // commit the transaction
   txn.commit();
 

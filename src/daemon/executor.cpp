@@ -58,7 +58,7 @@ namespace daemonize
       boost::program_options::variables_map const & vm
     )
   {
-    LOG_PRINT_L0("Caliber '" << MONERO_RELEASE_NAME << "' (v" << MONERO_VERSION_FULL << ") Daemonised");
+    LOG_PRINT_L0("Mask '" << MONERO_RELEASE_NAME << "' (v" << MONERO_VERSION_FULL << ") Daemonised");
     return t_daemon{vm};
   }
 

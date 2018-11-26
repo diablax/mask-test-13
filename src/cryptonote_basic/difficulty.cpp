@@ -35,9 +35,11 @@
 #include <vector>
 #include <boost/math/special_functions/round.hpp>
 
+#include "include_base_utils.h"
 #include "common/int-util.h"
 #include "crypto/hash.h"
 #include "cryptonote_config.h"
+#include "misc_language.h"
 #include "difficulty.h"
 
 #undef MONERO_DEFAULT_LOG_CATEGORY
@@ -171,4 +173,5 @@ namespace cryptonote {
     next_difficulty = static_cast<uint64_t>(nextDifficulty);
     return next_difficulty;
   }
+
 }

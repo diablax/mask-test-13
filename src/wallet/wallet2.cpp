@@ -117,7 +117,7 @@ using namespace cryptonote;
 #define SEGREGATION_FORK_HEIGHT 99999999
 #define TESTNET_SEGREGATION_FORK_HEIGHT 99999999
 #define STAGENET_SEGREGATION_FORK_HEIGHT 99999999
-#define SEGREGATION_FORK_VICINITY 10 /* blocks */
+#define SEGREGATION_FORK_VICINITY 1500 /* blocks */
 
 #define FIRST_REFRESH_GRANULARITY     1024
 
@@ -690,6 +690,11 @@ uint64_t estimate_tx_weight(bool use_rct, int n_inputs, int mixin, int n_outputs
     size += bp_clawback;
   }
   return size;
+}
+
+uint8_t get_bulletproof_fork()
+{
+  return 2;
 }
 
 uint64_t estimate_fee(bool use_per_byte_fee, bool use_rct, int n_inputs, int mixin, int n_outputs, size_t extra_size, bool bulletproof, uint64_t base_fee, uint64_t fee_multiplier, uint64_t fee_quantization_mask)
@@ -5227,8 +5232,23 @@ size_t wallet2::pop_best_value_from(const transfer_container &transfers, std::ve
       candidates.push_back(n);
   }
 
-  size_t idx = crypto::rand<size_t>() % candidates.size();
-
+  // we have all the least related outputs in candidates, so we can pick either
+  // the smallest, or a random one, depending on request
+  size_t idx;
+  if (smallest)
+  {
+    idx = 0;
+    for (size_t n = 0; n < candidates.size(); ++n)
+    {
+      const transfer_details &td = transfers[unused_indices[candidates[n]]];
+      if (td.amount() < transfers[unused_indices[candidates[idx]]].amount())
+        idx = n;
+    }
+  }
+  else
+  {
+    idx = crypto::rand<size_t>() % candidates.size();
+  }
   return pop_index (unused_indices, candidates[idx]);
 }
 //----------------------------------------------------------------------------------------------------
@@ -5386,7 +5406,7 @@ void wallet2::commit_tx(pending_tx& ptx)
 
   //fee includes dust if dust policy specified it.
   LOG_PRINT_L1("Transaction successfully sent. <" << txid << ">" << ENDL
-            << "Commission: " << print_money(ptx.fee) << ENDL
+            << "Commission: " << print_money(ptx.fee) << " (dust sent to dust addr: " << print_money((ptx.dust_added_to_fee ? 0 : ptx.dust)) << ")" << ENDL
             << "Balance: " << print_money(balance(ptx.construction_data.subaddr_account)) << ENDL
             << "Unlocked: " << print_money(unlocked_balance(ptx.construction_data.subaddr_account)) << ENDL
             << "Please, wait for confirmation for your balance to be unlocked.");
@@ -6153,12 +6173,12 @@ int wallet2::get_fee_algorithm() const
 //------------------------------------------------------------------------------------------------------------------------------
 uint64_t wallet2::get_min_ring_size() const
 {
-  return 11;
+  return 61;
 }
 //------------------------------------------------------------------------------------------------------------------------------
 uint64_t wallet2::get_max_ring_size() const
 {
-  return 11;
+  return 61;
 }
 //------------------------------------------------------------------------------------------------------------------------------
 uint64_t wallet2::adjust_mixin(uint64_t mixin) const
@@ -8261,7 +8281,7 @@ std::vector<wallet2::pending_tx> wallet2::create_transactions_2(std::vector<cryp
   uint64_t upper_transaction_weight_limit = get_upper_transaction_weight_limit();
   const bool use_per_byte_fee = true;
   const bool use_rct = true;
-  const bool bulletproof = true;
+  const bool bulletproof = use_fork_rules(get_bulletproof_fork(), 0);
   const rct::RangeProofType range_proof_type = bulletproof ? rct::RangeProofPaddedBulletproof : rct::RangeProofBorromean;
 
   const uint64_t base_fee  = get_base_fee();
@@ -8834,7 +8854,7 @@ std::vector<wallet2::pending_tx> wallet2::create_transactions_from(const crypton
 
   const bool use_per_byte_fee = true;
   const bool use_rct = fake_outs_count > 0 && true;
-  const bool bulletproof = true;
+  const bool bulletproof = use_fork_rules(get_bulletproof_fork(), 0);
   const rct::RangeProofType range_proof_type = bulletproof ? rct::RangeProofPaddedBulletproof : rct::RangeProofBorromean;
   const uint64_t base_fee  = get_base_fee();
   const uint64_t fee_multiplier = get_fee_multiplier(priority, get_fee_algorithm());

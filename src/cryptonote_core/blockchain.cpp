@@ -91,8 +91,9 @@ static const struct {
   time_t time;
 } mainnet_hard_forks[] = {
   // version 1 from the start of the blockchain
-  { 1, 1, 0, 1539809579 },
-  { 2, 10000, 0, 1542142345 }
+  // { 1, 1, 0, 1532173492 },
+  // { 2, 400000, 0, 1563709492 },
+  // { 3, 401000, 0, 1563709492 },
 };
 
 static const struct {
@@ -102,8 +103,9 @@ static const struct {
   time_t time;
 } testnet_hard_forks[] = {
   // version 1 from the start of the blockchain
-  { 1, 1, 0, 1539809579 },
-  { 2, 10000, 0, 1542142345 }
+  // { 1, 1, 0, 1532173492 },
+  // { 2, 400000, 0, 1563709492 },
+  // { 3, 401000, 0, 1563709492 },
 };
 
 static const struct {
@@ -113,8 +115,9 @@ static const struct {
   time_t time;
 } stagenet_hard_forks[] = {
   // version 1 from the start of the blockchain
-  { 1, 1, 0, 1539809579 },
-  { 2, 10000, 0, 1542142345 }
+  // { 1, 1, 0, 1532173492 },
+  // { 2, 400000, 0, 1563709492 },
+  // { 3, 401000, 0, 1563709492 },
 };
 
 //------------------------------------------------------------------
@@ -1083,7 +1086,7 @@ bool Blockchain::validate_miner_transaction(const block& b, size_t cumulative_bl
 
   std::vector<size_t> last_blocks_weights;
   get_last_n_blocks_weights(last_blocks_weights, CRYPTONOTE_REWARD_BLOCKS_WINDOW);
-  if (!get_block_reward(epee::misc_utils::median(last_blocks_weights), cumulative_block_weight, already_generated_coins, base_reward, version, m_db->height()))
+  if (!get_block_reward(epee::misc_utils::median(last_blocks_weights), cumulative_block_weight, already_generated_coins, base_reward, version))
   {
     MERROR_VER("block weight " << cumulative_block_weight << " is bigger than allowed for this blockchain");
     return false;
@@ -1194,7 +1197,7 @@ bool Blockchain::create_block_template(block& b, const account_public_address& m
 
   size_t txs_weight;
   uint64_t fee;
-  if (!m_tx_pool.fill_block_template(b, median_weight, already_generated_coins, txs_weight, fee, expected_reward, m_hardfork->get_current_version(), height))
+  if (!m_tx_pool.fill_block_template(b, median_weight, already_generated_coins, txs_weight, fee, expected_reward, m_hardfork->get_current_version()))
   {
     return false;
   }
@@ -2256,24 +2259,26 @@ bool Blockchain::check_tx_outputs(const transaction& tx, tx_verification_context
   }
 
 
-  // from v4, forbid invalid pubkeys
-  for (const auto &o: tx.vout) {
-    if (o.target.type() == typeid(txout_to_key)) {
-      const txout_to_key& out_to_key = boost::get<txout_to_key>(o.target);
-      if (!crypto::check_key(out_to_key.key)) {
+  // from v8, allow bulletproofs
+  if (hf_version < 2) {
+      const bool bulletproof = rct::is_rct_bulletproof(tx.rct_signatures.type);
+      if (bulletproof || !tx.rct_signatures.p.bulletproofs.empty())
+      {
+        MERROR_VER("Bulletproofs are not allowed before v8");
         tvc.m_invalid_output = true;
         return false;
       }
-    }
   }
 
-
-  const bool borromean = rct::is_rct_borromean(tx.rct_signatures.type);
-  if (borromean)
-  {
-    MERROR("Borromean range proofs are not allowed after v8");
-    tvc.m_invalid_output = true;
-    return false;
+  // from v3, forbid borromean range proofs
+  if (hf_version > 2) {
+      const bool borromean = rct::is_rct_borromean(tx.rct_signatures.type);
+      if (borromean)
+      {
+        MERROR_VER("Borromean range proofs are not allowed after v8");
+        tvc.m_invalid_output = true;
+        return false;
+      }
   }
 
   return true;
@@ -2378,12 +2383,12 @@ bool Blockchain::check_tx_inputs(transaction& tx, tx_verification_context &tvc, 
 
   const uint8_t hf_version = m_hardfork->get_current_version();
 
-  // require mixin at least 2 unless one output cannot mix with 2 others
+  // require mixin at least 60 unless one output cannot mix with 2 others
   // if one output cannot mix with 2 others, we accept at most 1 output that can mix
 
   size_t n_unmixable = 0, n_mixable = 0;
   size_t mixin = std::numeric_limits<size_t>::max();
-  const size_t min_mixin = 10;
+  const size_t min_mixin = 60;
   for (const auto& txin : tx.vin)
   {
     // non txin_to_key inputs will be rejected below
@@ -2412,7 +2417,7 @@ bool Blockchain::check_tx_inputs(transaction& tx, tx_verification_context &tvc, 
     }
   }
 
-  if (mixin != 10)
+  if (mixin != 60)
   {
     MERROR_VER("Tx " << get_transaction_hash(tx) << " has invalid ring size (" << (mixin + 1) << "), it should be 11");
     tvc.m_low_mixin = true;
@@ -2436,14 +2441,14 @@ bool Blockchain::check_tx_inputs(transaction& tx, tx_verification_context &tvc, 
   }
 
   // min/max tx version based on HF, and we accept v1 txes if having a non mixable
-  const size_t max_tx_version = 2;
+  const size_t max_tx_version = 1;
   if (tx.version > max_tx_version)
   {
     MERROR_VER("transaction version " << (unsigned)tx.version << " is higher than max accepted version " << max_tx_version);
     tvc.m_verifivation_failed = true;
     return false;
   }
-  const size_t min_tx_version = 2;
+  const size_t min_tx_version = 1;
   if (tx.version < min_tx_version)
   {
     MERROR_VER("transaction version " << (unsigned)tx.version << " is lower than min accepted version " << min_tx_version);
@@ -2452,20 +2457,23 @@ bool Blockchain::check_tx_inputs(transaction& tx, tx_verification_context &tvc, 
   }
 
 
-  const crypto::key_image *last_key_image = NULL;
-  for (size_t n = 0; n < tx.vin.size(); ++n)
-  {
-    const txin_v &txin = tx.vin[n];
-    if (txin.type() == typeid(txin_to_key))
+  // from v1, sorted ins
+  if (hf_version >= 1) {
+    const crypto::key_image *last_key_image = NULL;
+    for (size_t n = 0; n < tx.vin.size(); ++n)
     {
-      const txin_to_key& in_to_key = boost::get<txin_to_key>(txin);
-      if (last_key_image && memcmp(&in_to_key.k_image, last_key_image, sizeof(*last_key_image)) >= 0)
+      const txin_v &txin = tx.vin[n];
+      if (txin.type() == typeid(txin_to_key))
       {
-        MERROR_VER("transaction has unsorted inputs");
-        tvc.m_verifivation_failed = true;
-        return false;
+        const txin_to_key& in_to_key = boost::get<txin_to_key>(txin);
+        if (last_key_image && memcmp(&in_to_key.k_image, last_key_image, sizeof(*last_key_image)) >= 0)
+        {
+          MERROR_VER("transaction has unsorted inputs");
+          tvc.m_verifivation_failed = true;
+          return false;
+        }
+        last_key_image = &in_to_key.k_image;
       }
-      last_key_image = &in_to_key.k_image;
     }
   }
 
@@ -2732,6 +2740,22 @@ bool Blockchain::check_tx_inputs(transaction& tx, tx_verification_context &tvc, 
       MERROR_VER("Unsupported rct type: " << rv.type);
       return false;
     }
+
+    // for bulletproofs, check they're only multi-output after v2
+    if (rct::is_rct_bulletproof(rv.type))
+    {
+      if (hf_version < 2)
+      {
+        for (const rct::Bulletproof &proof: rv.p.bulletproofs)
+        {
+          if (proof.V.size() > 1)
+          {
+            MERROR_VER("Multi output bulletproofs are invalid before v2");
+            return false;
+          }
+        }
+      }
+    }
   }
   return true;
 }
@@ -2810,7 +2834,7 @@ bool Blockchain::check_fee(size_t tx_weight, uint64_t fee) const
 
   median = m_current_block_cumul_weight_limit / 2;
   already_generated_coins = m_db->height() ? m_db->get_block_already_generated_coins(m_db->height() - 1) : 0;
-  if (!get_block_reward(median, 1, already_generated_coins, base_reward, version, m_db->height()))
+  if (!get_block_reward(median, 1, already_generated_coins, base_reward, version))
     return false;
 
 
@@ -2851,7 +2875,7 @@ uint64_t Blockchain::get_dynamic_base_fee_estimate(uint64_t grace_blocks) const
 
   uint64_t already_generated_coins = m_db->height() ? m_db->get_block_already_generated_coins(m_db->height() - 1) : 0;
   uint64_t base_reward;
-  if (!get_block_reward(median, 1, already_generated_coins, base_reward, version, m_db->height()))
+  if (!get_block_reward(median, 1, already_generated_coins, base_reward, version))
   {
     MERROR("Failed to determine block reward, using placeholder " << print_money(BLOCK_REWARD_OVERESTIMATE) << " as a high bound");
     base_reward = BLOCK_REWARD_OVERESTIMATE;

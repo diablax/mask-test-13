@@ -82,8 +82,11 @@ namespace cryptonote
 
     uint64_t get_transaction_weight_limit(uint8_t version)
     {
-      // limit a tx to 50% of the minimum block weight
-      return get_min_block_weight(version) / 2 - CRYPTONOTE_COINBASE_BLOB_RESERVED_SIZE;
+      // from v2, limit a tx to 50% of the minimum block weight
+      if (version >= 2)
+        return get_min_block_weight(version) / 2 - CRYPTONOTE_COINBASE_BLOB_RESERVED_SIZE;
+      else
+        return get_min_block_weight(version) - CRYPTONOTE_COINBASE_BLOB_RESERVED_SIZE;
     }
 
     // This class is meant to create a batch when none currently exists.
@@ -1135,7 +1138,7 @@ namespace cryptonote
   }
   //---------------------------------------------------------------------------------
   //TODO: investigate whether boolean return is appropriate
-  bool tx_memory_pool::fill_block_template(block &bl, size_t median_weight, uint64_t already_generated_coins, size_t &total_weight, uint64_t &fee, uint64_t &expected_reward, uint8_t version, uint64_t height)
+  bool tx_memory_pool::fill_block_template(block &bl, size_t median_weight, uint64_t already_generated_coins, size_t &total_weight, uint64_t &fee, uint64_t &expected_reward, uint8_t version)
   {
     CRITICAL_REGION_LOCAL(m_transactions_lock);
     CRITICAL_REGION_LOCAL1(m_blockchain);
@@ -1145,7 +1148,7 @@ namespace cryptonote
     fee = 0;
 
     //baseline empty block
-    get_block_reward(median_weight, total_weight, already_generated_coins, best_coinbase, version, height);
+    get_block_reward(median_weight, total_weight, already_generated_coins, best_coinbase, version);
 
 
     size_t max_total_weight = 2 * median_weight - CRYPTONOTE_COINBASE_BLOB_RESERVED_SIZE;
@@ -1176,7 +1179,7 @@ namespace cryptonote
       // If we're getting lower coinbase tx,
       // stop including more tx
       uint64_t block_reward;
-      if(!get_block_reward(median_weight, total_weight + meta.weight, already_generated_coins, block_reward, version, height))
+      if(!get_block_reward(median_weight, total_weight + meta.weight, already_generated_coins, block_reward, version))
       {
         LOG_PRINT_L2("  would exceed maximum block weight");
         continue;

@@ -82,11 +82,11 @@ namespace cryptonote {
     return CRYPTONOTE_MAX_TX_SIZE;
   }
   //-----------------------------------------------------------------------------------------------
-  bool get_block_reward(size_t median_weight, size_t current_block_weight, uint64_t already_generated_coins, uint64_t &reward, uint8_t version, uint64_t height) {
+  bool get_block_reward(size_t median_weight, size_t current_block_weight, uint64_t already_generated_coins, uint64_t &reward, uint8_t version) {
     static_assert(DIFFICULTY_TARGET%60==0,"difficulty targets must be a multiple of 60");
     const int target = DIFFICULTY_TARGET;
     const int target_minutes = target / 60;
-    const int speed_factor = version > 1 ? EMISSION_SPEED_FACTOR_PER_MINUTE : EMISSION_SPEED_FACTOR_PER_MINUTE_PRE;
+    const int speed_factor = version > 1 ? EMISSION_SPEED_FACTOR_PER_MINUTE : EMISSION_SPEED_FACTOR_PER_MINUTE;
     const int emission_speed_factor = speed_factor - (target_minutes-1);
 
     uint64_t base_reward = (MONEY_SUPPLY - already_generated_coins) >> emission_speed_factor;
@@ -96,11 +96,6 @@ namespace cryptonote {
     }
 
     uint64_t full_reward_zone = get_min_block_weight(version);
-
-    if (height == 0) {
-      reward = 180000000000000000; //180k CAL premine
-       return true;
-    }
 
     //make it soft
     if (median_weight < full_reward_zone) {

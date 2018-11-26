@@ -391,21 +391,21 @@ namespace nodetool
     std::set<std::string> full_addrs;
     if (nettype == cryptonote::TESTNET)
     {
-      full_addrs.insert("104.248.209.53:29870");
-      full_addrs.insert("104.248.140.53:29870");
+      full_addrs.insert("208.97.141.93:44070");
+      full_addrs.insert("45.32.201.114:44070");
     }
     else if (nettype == cryptonote::STAGENET)
     {
-      full_addrs.insert("104.248.209.53:39870");
-      full_addrs.insert("104.248.140.53:39870");
+      full_addrs.insert("208.97.141.93:44060");
+      full_addrs.insert("45.32.201.114:44060");
     }
     else if (nettype == cryptonote::FAKECHAIN)
     {
     }
     else
     {
-      full_addrs.insert("104.248.209.53:19870");
-      full_addrs.insert("104.248.140.53:19870");
+      full_addrs.insert("208.97.141.93:44080");
+      full_addrs.insert("45.32.201.114:44080");
     }
     return full_addrs;
   }
